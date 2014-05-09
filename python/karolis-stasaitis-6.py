@@ -4,7 +4,7 @@ from operator import itemgetter
 
 keyboard_layout = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
 
-def search(word):
+def search(a):
 	coords = [];
 	for i in range(len(word)):
 		for j in range(len(keyboard_layout)):
