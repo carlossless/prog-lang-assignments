@@ -19,7 +19,7 @@ object ControlFunction {
 
     bot.move(direction)
     bot.set("lastDirection" -> bestDirection45)
-    if (bot.energy > 1000 && bot.time < 2000  && bot.time % 2 == 0) {
+    if (bot.energy > 80 && bot.time < 500  && bot.time % 2 == 0) {
       bot.spawn(direction.negate)
       bot.set("botsSpawned" -> (botsSpawned + 1))
     }
