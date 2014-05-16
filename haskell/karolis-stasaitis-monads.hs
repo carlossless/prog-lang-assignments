@@ -33,4 +33,4 @@ main = do
 	return (Kazkas1 (Kazkas1 5)) >>= dosomething
 	let a = Kazkas2 5 "B" >>= duplicate >>= duplicate >>= duplicate
 	print a
-	print $ (Kazkas3 2 2) >>= increase >>= increase
+	print $ (Kazkas3 2 2) >>= increase

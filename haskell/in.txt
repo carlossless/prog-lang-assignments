@@ -1,3 +1,4 @@
-2 
+3
 ifpv 3 iopc icpc gcpc 
 edc 5 wsx edc rfv plm qed
+labas 3 kraba sabal sabas 

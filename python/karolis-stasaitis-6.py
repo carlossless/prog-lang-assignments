@@ -4,7 +4,7 @@ from operator import itemgetter
 
 keyboard_layout = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
 
-def search(a):
+def search(word):
 	coords = [];
 	for i in range(len(word)):
 		for j in range(len(keyboard_layout)):
@@ -38,7 +38,7 @@ for i in range(test_case_count):
 		suggested_word = test_case[y+2]
 		suggested_word_coords = search(suggested_word)
 		result = 0;
-		for k in range (len(suggested_word_coords)):
+		for k in range(len(suggested_word_coords)):
 			result += abs(original_word_coords[k][0] - suggested_word_coords[k][0]) + abs(original_word_coords[k][1] - suggested_word_coords[k][1])
 		counted_words.append([suggested_word, result])
 

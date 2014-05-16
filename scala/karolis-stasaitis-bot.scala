@@ -23,10 +23,7 @@ object ControlFunction {
       bot.spawn(direction.negate)
       bot.set("botsSpawned" -> (botsSpawned + 1))
     }
-
-
   }
-
 
   def forSlave(bot: MiniBot) {
     val (directionValue, dangerousEnemy) = analyzeView(bot.view, false)
@@ -34,84 +31,83 @@ object ControlFunction {
     val returningToMaster = bot.inputAsIntOrElse("returningToMaster", 0)
     directionValue(lastDirection) += 10 // try to break ties by favoring the last direction
     if (bot.energy > 500)
-      bot.set("returningToMaster" -> 1)
+    bot.set("returningToMaster" -> 1)
     if (returningToMaster == 1) {
       if (bot.time > 800)
       directionValue(bot.offsetToMaster.toDirection45) += 100
-                          else
-        directionValue(bot.offsetToMaster.toDirection45) += 40
-
+      else
+      directionValue(bot.offsetToMaster.toDirection45) += 40
     }
-      val bestDirection45 = directionValue.zipWithIndex.maxBy(_._1)._2
-      val direction = XY.fromDirection45(bestDirection45)
-      val botsSpawned = bot.inputAsIntOrElse("botsSpawned", 0)
+    val bestDirection45 = directionValue.zipWithIndex.maxBy(_._1)._2
+    val direction = XY.fromDirection45(bestDirection45)
+    val botsSpawned = bot.inputAsIntOrElse("botsSpawned", 0)
 
-      bot.move(direction)
-      bot.set("lastDirection" -> bestDirection45)
+    bot.move(direction)
+    bot.set("lastDirection" -> bestDirection45)
 
-      if (bot.energy > 500 && bot.time < 800 && bot.generation < 2 && botsSpawned < 2) {
-        bot.spawn(direction.negate)
-        bot.set("botsSpawned" -> (botsSpawned + 1))
-      }
+    if (bot.energy > 500 && bot.time < 800 && bot.generation < 2 && botsSpawned < 2) {
+      bot.spawn(direction.negate)
+      bot.set("botsSpawned" -> (botsSpawned + 1))
+    }
   }
 
   /** Analyze the view, building a map of attractiveness for the 45-degree directions and
     * recording other relevant data, such as the nearest elements of various kinds.
     */
-  def analyzeView(view: View, isMaster:Boolean) = {
-    val directionValue = Array.ofDim[Double](8)
-    var dangerousEnemy: Option[XY] = None
-    val cells = view.cells
-    val cellCount = cells.length
-    val cellPositions = cells.zipWithIndex.map {
-      case (c, i) => view.relPosFromIndex(i)
-    }
-    cells.zip(cellPositions).foreach {
-      case (c, cp) => if (cp.isNonZero) {
-        val direction45 = cp.toDirection45
-        val (tval, newDangerousEnemy)= CalculateCellValue(cp, c, isMaster)
-        newDangerousEnemy match  {
-          case None =>
-          case Some(relPos) =>   dangerousEnemy =  newDangerousEnemy
-        }
-        directionValue(direction45) += tval
-
+    def analyzeView(view: View, isMaster:Boolean) = {
+      val directionValue = Array.ofDim[Double](8)
+      var dangerousEnemy: Option[XY] = None
+      val cells = view.cells
+      val cellCount = cells.length
+      val cellPositions = cells.zipWithIndex.map {
+        case (c, i) => view.relPosFromIndex(i)
       }
-    }
-    (directionValue, dangerousEnemy)
-  }
+      cells.zip(cellPositions).foreach {
+        case (c, cp) => if (cp.isNonZero) {
+          val direction45 = cp.toDirection45
+          val (tval, newDangerousEnemy)= CalculateCellValue(cp, c, isMaster)
+          newDangerousEnemy match  {
+            case None =>
+            case Some(relPos) =>   dangerousEnemy =  newDangerousEnemy
+          }
+          directionValue(direction45) += tval
 
-  def CalculateCellValue(cellRelPos: XY, cell: Char, isMaster:Boolean):(Double, Option[XY]) = {
-    var dangerousEnemy: Option[XY] = None
-    val stepDistance = cellRelPos.stepCount
-    val value: Double = cell match {
+        }
+      }
+      (directionValue, dangerousEnemy)
+    }
+
+    def CalculateCellValue(cellRelPos: XY, cell: Char, isMaster:Boolean):(Double, Option[XY]) = {
+      var dangerousEnemy: Option[XY] = None
+      val stepDistance = cellRelPos.stepCount
+      val value: Double = cell match {
       case 'm' => // another master: not dangerous, but an obstacle
-        if (stepDistance < 2) -1000 else 0
+      if (stepDistance < 2) -1000 else 0
 
       case 's' => // another slave: potentially dangerous?
-        -100 / stepDistance
+      -100 / stepDistance
 
       case 'S' => // out own slave
-       if (isMaster) 0 else -20
+      if (isMaster) 0 else -20
 
       case 'B' => // good beast: valuable, but runs away
-        if (stepDistance == 1) 600
-        else if (stepDistance == 2) 300
-        else (150 - stepDistance * 15).max(10)
+      if (stepDistance == 1) 600
+      else if (stepDistance == 2) 300
+      else (150 - stepDistance * 15).max(10)
 
       case 'P' => // good plant: less valuable, but does not run
-        if (stepDistance == 1) 500
-        else if (stepDistance == 2) 300
-        else (150 - stepDistance * 10).max(10)
+      if (stepDistance == 1) 500
+      else if (stepDistance == 2) 300
+      else (150 - stepDistance * 10).max(10)
 
       case 'b' => // bad beast: dangerous, but only if very close
-        if (stepDistance < 4) dangerousEnemy = Some(cellRelPos)
-        if (stepDistance < 4) -400 / stepDistance else -50 / stepDistance
+      if (stepDistance < 4) dangerousEnemy = Some(cellRelPos)
+      if (stepDistance < 4) -400 / stepDistance else -50 / stepDistance
       case 'p' => // bad plant: bad, but only if I step on it
-        if (stepDistance < 2) -1000 else 0
+      if (stepDistance < 2) -1000 else 0
 
       case 'W' => // wall: harmless, just don't walk into it
-        if (stepDistance < 2) -1000 else 0
+      if (stepDistance < 2) -1000 else 0
 
       case _ => 0.0
     }
@@ -129,9 +125,9 @@ class ControlFunctionFactory {
     val (opcode, params) = CommandParser(input)
     opcode match {
       case "React" =>
-        val bot = new BotImpl(params)
-        if (bot.generation == 0) {
-          ControlFunction.forMaster(bot)
+      val bot = new BotImpl(params)
+      if (bot.generation == 0) {
+        ControlFunction.forMaster(bot)
         } else {
           ControlFunction.forSlave(bot)
         }
@@ -240,9 +236,9 @@ case class BotImpl(inputParams: Map[String, String]) extends MiniBot {
   def explode(blastRadius: Int) = append("Explode(size=" + blastRadius + ")")
 
   def spawn(offset: XY, params: (String, Any)*) =
-    append("Spawn(direction=" + offset +
-      (if (params.isEmpty) "" else "," + params.map(e => e._1 + "=" + e._2).mkString(",")) +
-      ")")
+  append("Spawn(direction=" + offset +
+    (if (params.isEmpty) "" else "," + params.map(e => e._1 + "=" + e._2).mkString(",")) +
+    ")")
 
   def set(params: (String, Any)*) = {
     stateParams ++= params; this
@@ -260,9 +256,9 @@ case class BotImpl(inputParams: Map[String, String]) extends MiniBot {
 /** Utility methods for parsing strings containing a single command of the format
   * "Command(key=value,key=value,...)"
   */
-object CommandParser {
+  object CommandParser {
   /** "Command(..)" => ("Command", Map( ("key" -> "value"), ("key" -> "value"), ..}) */
-  def apply(command: String): (String, Map[String, String]) = {
+    def apply(command: String): (String, Map[String, String]) = {
     /** "key=value" => ("key","value") */
     def splitParameterIntoKeyValue(param: String): (String, String) = {
       val segments = param.split('=')
@@ -270,14 +266,14 @@ object CommandParser {
     }
 
     val segments = command.split('(')
-    if (segments.length != 2)
+      if (segments.length != 2)
       throw new IllegalStateException("invalid command: " + command)
-    val opcode = segments(0)
-    val params = segments(1).dropRight(1).split(',')
-    val keyValuePairs = params.map(splitParameterIntoKeyValue).toMap
-    (opcode, keyValuePairs)
+      val opcode = segments(0)
+      val params = segments(1).dropRight(1).split(',')
+      val keyValuePairs = params.map(splitParameterIntoKeyValue).toMap
+      (opcode, keyValuePairs)
+    }
   }
-}
 
 
 // -------------------------------------------------------------------------------------------------
@@ -287,30 +283,30 @@ object CommandParser {
   * The coordinate (0,0) corresponds to the top-left corner of the arena on screen.
   * The direction (1,-1) points right and up.
   */
-case class XY(x: Int, y: Int) {
-  override def toString = x + ":" + y
+  case class XY(x: Int, y: Int) {
+    override def toString = x + ":" + y
 
-  def isNonZero = x != 0 || y != 0
+    def isNonZero = x != 0 || y != 0
 
-  def isZero = x == 0 && y == 0
+    def isZero = x == 0 && y == 0
 
-  def isNonNegative = x >= 0 && y >= 0
+    def isNonNegative = x >= 0 && y >= 0
 
-  def updateX(newX: Int) = XY(newX, y)
+    def updateX(newX: Int) = XY(newX, y)
 
-  def updateY(newY: Int) = XY(x, newY)
+    def updateY(newY: Int) = XY(x, newY)
 
-  def addToX(dx: Int) = XY(x + dx, y)
+    def addToX(dx: Int) = XY(x + dx, y)
 
-  def addToY(dy: Int) = XY(x, y + dy)
+    def addToY(dy: Int) = XY(x, y + dy)
 
-  def +(pos: XY) = XY(x + pos.x, y + pos.y)
+    def +(pos: XY) = XY(x + pos.x, y + pos.y)
 
-  def -(pos: XY) = XY(x - pos.x, y - pos.y)
+    def -(pos: XY) = XY(x - pos.x, y - pos.y)
 
-  def *(factor: Double) = XY((x * factor).intValue, (y * factor).intValue)
+    def *(factor: Double) = XY((x * factor).intValue, (y * factor).intValue)
 
-  def distanceTo(pos: XY): Double = (this - pos).length
+    def distanceTo(pos: XY): Double = (this - pos).length
 
   // Phythagorean
   def length: Double = math.sqrt(x * x + y * y) // Phythagorean
@@ -333,37 +329,37 @@ case class XY(x: Int, y: Int) {
     val unit = signum
     unit.x match {
       case -1 =>
-        unit.y match {
-          case -1 =>
-            if (x < y * 3) Direction45.Left
-            else if (y < x * 3) Direction45.Up
-            else Direction45.UpLeft
-          case 0 =>
-            Direction45.Left
-          case 1 =>
-            if (-x > y * 3) Direction45.Left
-            else if (y > -x * 3) Direction45.Down
-            else Direction45.LeftDown
-        }
+      unit.y match {
+        case -1 =>
+        if (x < y * 3) Direction45.Left
+        else if (y < x * 3) Direction45.Up
+        else Direction45.UpLeft
+        case 0 =>
+        Direction45.Left
+        case 1 =>
+        if (-x > y * 3) Direction45.Left
+        else if (y > -x * 3) Direction45.Down
+        else Direction45.LeftDown
+      }
       case 0 =>
-        unit.y match {
-          case 1 => Direction45.Down
-          case 0 => throw new IllegalArgumentException("cannot compute direction index for (0,0)")
-          case -1 => Direction45.Up
-        }
+      unit.y match {
+        case 1 => Direction45.Down
+        case 0 => throw new IllegalArgumentException("cannot compute direction index for (0,0)")
+        case -1 => Direction45.Up
+      }
       case 1 =>
-        unit.y match {
-          case -1 =>
-            if (x > -y * 3) Direction45.Right
-            else if (-y > x * 3) Direction45.Up
-            else Direction45.RightUp
-          case 0 =>
-            Direction45.Right
-          case 1 =>
-            if (x > y * 3) Direction45.Right
-            else if (y > x * 3) Direction45.Down
-            else Direction45.DownRight
-        }
+      unit.y match {
+        case -1 =>
+        if (x > -y * 3) Direction45.Right
+        else if (-y > x * 3) Direction45.Up
+        else Direction45.RightUp
+        case 0 =>
+        Direction45.Right
+        case 1 =>
+        if (x > y * 3) Direction45.Right
+        else if (y > x * 3) Direction45.Down
+        else Direction45.DownRight
+      }
     }
   }
 
@@ -472,7 +468,7 @@ case class View(cells: String) {
   def offsetToNearest(c: Char) = {
     val matchingXY = cells.view.zipWithIndex.filter(_._1 == c)
     if (matchingXY.isEmpty)
-      None
+    None
     else {
       val nearest = matchingXY.map(p => relPosFromIndex(p._2)).minBy(_.length)
       Some(nearest)
